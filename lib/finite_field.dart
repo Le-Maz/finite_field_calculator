@@ -24,7 +24,7 @@ class FiniteFieldElement {
   }
 
   FiniteFieldElement inverse() {
-    if (value == 0) throw Exception('Division by zero');
+    if (value == 0) throw ArgumentError('Division by zero');
     return FiniteFieldElement(_extendedGCD(value, p), p);
   }
 
@@ -75,7 +75,7 @@ class FiniteFieldElement {
     if (m == 1) return 0;
 
     while (a > 1) {
-      if (m == 0) throw Exception();
+      if (m == 0) throw ArgumentError();
       q = a ~/ m;
       t = m;
       m = a % m;

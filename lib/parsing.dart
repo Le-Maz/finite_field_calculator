@@ -59,7 +59,8 @@ Polynomial parsePolynomial(
       .replaceAllMapped(RegExp(r'(\d)(x)'), (m) => '${m[1]}×${m[2]}')
       .replaceAllMapped(RegExp(r'(x)(\d)'), (m) => '${m[1]}×${m[2]}')
       .replaceAllMapped(RegExp(r'(\))([x\d])'), (m) => '${m[1]}×${m[2]}')
-      .replaceAllMapped(RegExp(r'([x\d])(\()'), (m) => '${m[1]}×${m[2]}');
+      .replaceAllMapped(RegExp(r'([x\d])(\()'), (m) => '${m[1]}×${m[2]}')
+      .replaceAllMapped(RegExp(r'(⁻¹)([x\d\(])'), (m) => '${m[1]}×${m[2]}');
 
   final tokens = _tokenize(processed);
   final rpn = _toRPN(tokens);
@@ -118,10 +119,10 @@ Polynomial _evaluateRPNToPoly(
     if (int.tryParse(token) != null) {
       stack.add(int.parse(token));
     } else if (token == 'x') {
-      if (!isPoly) throw Exception("Polynomial mode is disabled");
+      if (!isPoly) throw ArgumentError("Polynomial mode is disabled");
       stack.add(Polynomial.fromInts([0, 1], p));
     } else if (token == '⁻¹') {
-      if (stack.isEmpty) throw Exception();
+      if (stack.isEmpty) throw ArgumentError();
       dynamic a = stack.removeLast();
       Polynomial polyA = a is int
           ? Polynomial.fromInts([a], p)
@@ -129,16 +130,16 @@ Polynomial _evaluateRPNToPoly(
 
       if (!isPoly) {
         if (polyA.degree > 0) {
-          throw Exception("Cannot invert poly in scalar mode");
+          throw ArgumentError("Cannot invert poly in scalar mode");
         }
-        if (polyA.isZero) throw Exception("Division by zero");
+        if (polyA.isZero) throw ArgumentError("Division by zero");
         int val = polyA.coefficients[0]
             .inverse()
             .value; // Assuming an inverse() method exists on the coefficient
         stack.add(Polynomial.fromInts([val], p));
       } else {
         if (modulus == null || modulus.isZero) {
-          throw Exception("Reducing polynomial is required for inversion");
+          throw ArgumentError("Reducing polynomial is required for inversion");
         }
         stack.add(polyA.inverseMod(modulus)); // Assuming inverseMod exists
       }
@@ -157,7 +158,9 @@ Polynomial _evaluateRPNToPoly(
           exp = b;
         } else {
           Polynomial polyB = b as Polynomial;
-          if (polyB.degree > 0) throw Exception("Exponent must be a scalar");
+          if (polyB.degree > 0) {
+            throw ArgumentError("Exponent must be a scalar");
+          }
           exp = polyB.isZero ? 0 : polyB.coefficients[0].value;
         }
         res = polyPow(polyA, exp, p, modulus);

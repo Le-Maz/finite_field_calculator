@@ -46,6 +46,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent || event is KeyRepeatEvent) {
           final key = event.logicalKey;
+          String? char = event.character;
 
           if (key == LogicalKeyboardKey.backspace) {
             _onPressed("⌫");
@@ -63,13 +64,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
           } else if (key == LogicalKeyboardKey.delete) {
             _onPressed("C");
             return KeyEventResult.handled;
-          } else if (event.character != null) {
-            String char = event.character!;
+          } else if (char != null) {
             if ("0123456789+-^()".contains(char)) {
               _onPressed(char);
               return KeyEventResult.handled;
             } else if (char == '*' || char.toLowerCase() == 'x') {
               _onPressed(char == '*' ? '×' : 'x');
+              return KeyEventResult.handled;
+            } else if (char.toLowerCase() == 'i') {
+              _onPressed('⁻¹');
               return KeyEventResult.handled;
             } else if (char == '=') {
               _onPressed('=');
@@ -161,14 +164,35 @@ class _CalculatorPageState extends State<CalculatorPage> {
       }
     } else {
       bool isBinaryOp(String s) => ["+", "-", "×", "^"].contains(s);
-      bool isLastCharBinaryOp = start > 0 && isBinaryOp(text[start - 1]);
 
-      if (start == end && isBinaryOp(value) && isLastCharBinaryOp) {
+      // Check if we are starting a negative exponent
+      bool isNegativeExponentTrigger =
+          (start > 0 && text[start - 1] == "^" && value == "-") ||
+          (start > 1 &&
+              text.substring(start - 2, start) == "^(" &&
+              value == "-");
+
+      // Only swap operators if we aren't currently trying to type a negative power
+      if (start == end &&
+          !isNegativeExponentTrigger &&
+          isBinaryOp(value) &&
+          start > 0 &&
+          isBinaryOp(text[start - 1])) {
         newText = text.replaceRange(start - 1, start, value);
         newOffset = start;
       } else {
         newText = text.replaceRange(start, end, value);
         newOffset = start + value.length;
+
+        if (newOffset >= 2 &&
+            newText.substring(newOffset - 2, newOffset) == "^-") {
+          newText = newText.replaceRange(newOffset - 2, newOffset, "⁻¹^");
+          newOffset = newText.indexOf("^", start) + 1;
+        } else if (newOffset >= 3 &&
+            newText.substring(newOffset - 3, newOffset) == "^(-") {
+          newText = newText.replaceRange(newOffset - 3, newOffset, "⁻¹^(");
+          newOffset = newText.indexOf("(", start) + 1;
+        }
       }
     }
 

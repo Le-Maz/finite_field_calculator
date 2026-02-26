@@ -108,7 +108,7 @@ class Polynomial {
   }
 
   List<Polynomial> divMod(Polynomial other) {
-    if (other.isZero) throw Exception("Division by zero polynomial");
+    if (other.isZero) throw ArgumentError("Division by zero polynomial");
     _checkField(other);
 
     Polynomial q = Polynomial.zero(p);
