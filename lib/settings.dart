@@ -7,6 +7,25 @@ final ValueNotifier<int> fieldOrder = .new(127);
 final ValueNotifier<bool> isPolynomialMode = .new(false);
 final ValueNotifier<String> reducingPolyString = .new("x^2 + 1");
 
+class FunPrime {
+  final int value;
+  final String label;
+  final IconData icon;
+
+  const FunPrime({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+}
+
+class StandardPoly {
+  final String poly;
+  final String label;
+
+  const StandardPoly({required this.poly, required this.label});
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -21,24 +40,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isModPolyValid = true;
   bool _isModPolyIrreducible = true;
 
-  final List<Map<String, dynamic>> _funPrimes = [
-    {"value": 11, "label": "Sophie Germain"},
-    {"value": 37, "label": "Star Prime"},
-    {"value": 101, "label": "Palindromic"},
-    {"value": 127, "label": "Mersenne (M₇)"},
-    {"value": 257, "label": "Fermat (F₄)"},
-    {"value": 65537, "label": "Fermat (F₅)"},
-    {"value": 1000000007, "label": "Competitive"},
-    {"value": 2147483647, "label": "Mersenne (M₃₁)"},
+  final List<FunPrime> _funPrimes = const [
+    FunPrime(value: 2, label: "Binary", icon: Icons.looks_two),
+    FunPrime(value: 11, label: "Sophie Germain", icon: Icons.diamond),
+    FunPrime(value: 101, label: "Palindromic", icon: Icons.swap_horiz),
+    FunPrime(value: 127, label: "Mersenne (M₇)", icon: Icons.memory),
+    FunPrime(value: 257, label: "Fermat (F₄)", icon: Icons.architecture),
+    FunPrime(value: 65537, label: "Fermat (F₅)", icon: Icons.account_balance),
+    FunPrime(value: 1000000007, label: "Competitive", icon: Icons.emoji_events),
+    FunPrime(value: 2147483647, label: "Mersenne (M₃₁)", icon: Icons.speed),
   ];
 
-  final List<Map<String, dynamic>> _standardPolys = [
-    {"p": null, "poly": "", "label": "Empty"},
-    {"p": 127, "poly": "x^2 + 1", "label": "Complex (GF(127²))"},
-    {"p": 2, "poly": "x^4 + x + 1", "label": "Nibble (GF(2⁴))"},
-    {"p": 2, "poly": "x^8 + x^4 + x^3 + x + 1", "label": "AES (GF(2⁸))"},
-    {"p": 2, "poly": "x^8 + x^6 + x^5 + x^3 + 1", "label": "Camellia (GF(2⁸))"},
+  final List<StandardPoly> _standardPolys = const [
+    StandardPoly(poly: "", label: "No Modulus"),
+    StandardPoly(poly: "x^2 + 1", label: "Complex-like"),
+    StandardPoly(poly: "x^2 + x + 1", label: "Degree 2 minimum"),
+    StandardPoly(poly: "x^3 + x + 1", label: "Degree 3 minimum"),
+    StandardPoly(poly: "x^4 + x + 1", label: "Nibble operations"),
+    StandardPoly(poly: "x^8 + x^4 + x^3 + x + 1", label: "AES standard"),
+    StandardPoly(poly: "x^8 + x^6 + x^5 + x^3 + 1", label: "Camellia standard"),
   ];
+
+  List<StandardPoly> _filteredPolys = [];
 
   @override
   void initState() {
@@ -47,6 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _modController = TextEditingController(text: reducingPolyString.value);
     _isCurrentPrime = _isPrime(fieldOrder.value);
     _validateModPoly();
+    _updateFilteredPolys();
   }
 
   @override
@@ -56,6 +80,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  String _digitToSuperScript(String c) =>
+      {
+        '0': '⁰',
+        '1': '¹',
+        '2': '²',
+        '3': '³',
+        '4': '⁴',
+        '5': '⁵',
+        '6': '⁶',
+        '7': '⁷',
+        '8': '⁸',
+        '9': '⁹',
+      }[c] ??
+      c;
+
+  String _formatPoly(String poly) {
+    if (poly.isEmpty) return "Empty";
+    return poly.replaceAllMapped(
+      RegExp(r'\^(\d+)'),
+      (Match m) => m.group(1)!.split('').map(_digitToSuperScript).join(''),
+    );
+  }
+
+  void _updateFilteredPolys() {
+    final int p = fieldOrder.value;
+    List<StandardPoly> valid = [];
+
+    for (var data in _standardPolys) {
+      if (data.poly.isEmpty) {
+        valid.add(data);
+        continue;
+      }
+      try {
+        Polynomial f = parsePolynomial(data.poly, p, true, null);
+        if (_isIrreducible(f, p)) {
+          valid.add(data);
+        }
+      } catch (_) {}
+    }
+
+    setState(() {
+      _filteredPolys = valid;
+    });
+  }
+
   void _updateOrder(int newOrder) {
     setState(() {
       _isCurrentPrime = _isPrime(newOrder);
@@ -63,6 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (newOrder > 1) {
       fieldOrder.value = newOrder;
       _validateModPoly();
+      _updateFilteredPolys();
     }
   }
 
@@ -136,6 +206,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                "Finite Field Order (p)",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Enter a prime number to define the base field size.",
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _pController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Field Order",
+                  prefixIcon: Icon(Icons.tag),
+                ),
+                onChanged: (value) {
+                  final int? newOrder = int.tryParse(value);
+                  if (newOrder != null) {
+                    _updateOrder(newOrder);
+                  } else {
+                    setState(() => _isCurrentPrime = false);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    _isCurrentPrime ? Icons.check_circle : Icons.error,
+                    color: _isCurrentPrime ? Colors.green : Colors.redAccent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isCurrentPrime
+                          ? "This is a prime number."
+                          : "Not a prime! Field arithmetic may throw errors.",
+                      style: TextStyle(
+                        color: _isCurrentPrime
+                            ? Colors.green
+                            : Colors.redAccent,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 48),
+              const Text(
+                "Fun Primes",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12.0,
+                runSpacing: 12.0,
+                children: _funPrimes.map((primeData) {
+                  return ActionChip(
+                    avatar: Icon(primeData.icon, size: 16),
+                    label: Text("${primeData.value}"),
+                    tooltip: primeData.label,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    onPressed: () {
+                      _pController.text = primeData.value.toString();
+                      _updateOrder(primeData.value);
+                    },
+                  );
+                }).toList(),
+              ),
+              const Divider(height: 48),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
@@ -220,109 +366,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: _standardPolys.map((data) {
-                          int? p = data['p'];
-                          String setsP = "p=$p and";
-                          return ActionChip(
-                            label: Text(data["label"]),
-                            tooltip: "Sets$setsP f(x)=${data['poly']}",
-                            onPressed: () {
-                              if (p != null) {
-                                _pController.text = p.toString();
-                                _updateOrder(p);
-                              }
-
-                              _modController.text = data["poly"];
-                              reducingPolyString.value = data["poly"];
-                              _validateModPoly();
-                            },
-                          );
-                        }).toList(),
-                      ),
+                      if (_filteredPolys.isNotEmpty) ...[
+                        const Text(
+                          "Valid Irreducible Polynomials for Current Prime",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12.0,
+                          runSpacing: 12.0,
+                          children: _filteredPolys.map((data) {
+                            return ActionChip(
+                              avatar: const Icon(Icons.functions, size: 16),
+                              label: Text(_formatPoly(data.poly)),
+                              tooltip: data.label,
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onPressed: () {
+                                _modController.text = data.poly;
+                                reducingPolyString.value = data.poly;
+                                _validateModPoly();
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ] else ...[
+                        const Text(
+                          "No common irreducible polynomials found for this prime. Try defining your own.",
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
                     ],
                   );
                 },
-              ),
-              const Divider(height: 48),
-              const Text(
-                "Finite Field Order (p)",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Enter a prime number to define the base field size.",
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _pController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: "Field Order",
-                  prefixIcon: Icon(Icons.tag),
-                ),
-                onChanged: (value) {
-                  final int? newOrder = int.tryParse(value);
-                  if (newOrder != null) {
-                    _updateOrder(newOrder);
-                  } else {
-                    setState(() => _isCurrentPrime = false);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    _isCurrentPrime ? Icons.check_circle : Icons.error,
-                    color: _isCurrentPrime ? Colors.green : Colors.redAccent,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _isCurrentPrime
-                          ? "This is a prime number."
-                          : "Not a prime! Field arithmetic may throw errors.",
-                      style: TextStyle(
-                        color: _isCurrentPrime
-                            ? Colors.green
-                            : Colors.redAccent,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 48),
-              const Text(
-                "Fun Primes",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12.0,
-                runSpacing: 12.0,
-                children: _funPrimes.map((primeData) {
-                  final int pValue = primeData["value"];
-                  final String pLabel = primeData["label"];
-                  return ActionChip(
-                    avatar: const Icon(Icons.star, size: 16),
-                    label: Text("$pValue"),
-                    tooltip: pLabel,
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: () {
-                      _pController.text = pValue.toString();
-                      _updateOrder(pValue);
-                    },
-                  );
-                }).toList(),
               ),
             ],
           ),
