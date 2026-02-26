@@ -33,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   final List<Map<String, dynamic>> _standardPolys = [
+    {"p": null, "poly": "", "label": "Empty"},
     {"p": 127, "poly": "x^2 + 1", "label": "Complex (GF(127²))"},
     {"p": 2, "poly": "x^4 + x + 1", "label": "Nibble (GF(2⁴))"},
     {"p": 2, "poly": "x^8 + x^4 + x^3 + x + 1", "label": "AES (GF(2⁸))"},
@@ -223,13 +224,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         spacing: 8.0,
                         runSpacing: 8.0,
                         children: _standardPolys.map((data) {
+                          int? p = data['p'];
+                          String setsP = "p=$p and";
                           return ActionChip(
                             label: Text(data["label"]),
-                            tooltip:
-                                "Sets p=${data['p']} and f(x)=${data['poly']}",
+                            tooltip: "Sets$setsP f(x)=${data['poly']}",
                             onPressed: () {
-                              _pController.text = data["p"].toString();
-                              _updateOrder(data["p"]);
+                              if (p != null) {
+                                _pController.text = p.toString();
+                                _updateOrder(p);
+                              }
 
                               _modController.text = data["poly"];
                               reducingPolyString.value = data["poly"];

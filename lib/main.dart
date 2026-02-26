@@ -260,18 +260,21 @@ class _CalculatorPageState extends State<CalculatorPage> {
                         ),
                       ),
                       if (isPoly) ...[
-                        TextSpan(text: " [x] / ("),
-                        TextSpan(
-                          text: reducingPolyString.value.replaceAllMapped(
-                            RegExp(r'\^(\d+)'),
-                            (Match m) => m
-                                .group(1)!
-                                .split('')
-                                .map(_digitToSuperScript)
-                                .join(''),
+                        TextSpan(text: " [x]"),
+                        if (reducingPolyString.value.isNotEmpty) ...[
+                          TextSpan(text: " / ("),
+                          TextSpan(
+                            text: reducingPolyString.value.replaceAllMapped(
+                              RegExp(r'\^(\d+)'),
+                              (Match m) => m
+                                  .group(1)!
+                                  .split('')
+                                  .map(_digitToSuperScript)
+                                  .join(''),
+                            ),
                           ),
-                        ),
-                        TextSpan(text: ")"),
+                          TextSpan(text: ")"),
+                        ],
                       ],
                     ],
                   ),
