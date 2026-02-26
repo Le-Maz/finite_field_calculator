@@ -368,7 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 24),
                       if (_filteredPolys.isNotEmpty) ...[
                         const Text(
-                          "Valid Irreducible Polynomials for Current Prime",
+                          "Example Irreducible Polynomials",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

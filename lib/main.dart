@@ -77,9 +77,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 _onPressed('x');
               }
               return KeyEventResult.handled;
-            } else if (char.toLowerCase() == 'i') {
-              _onPressed('⁻¹');
-              return KeyEventResult.handled;
             } else if (char == '=') {
               _onPressed('=');
               return KeyEventResult.handled;
@@ -144,11 +141,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
         newText = text.replaceRange(start, end, "");
         newOffset = start;
       } else if (start > 0) {
-        int len = (start >= 2 && text.substring(start - 2, start) == "⁻¹")
-            ? 2
-            : 1;
-        newText = text.replaceRange(start - len, start, "");
-        newOffset = start - len;
+        newText = text.replaceRange(start - 1, start, "");
+        newOffset = start - 1;
       } else {
         return;
       }
@@ -157,52 +151,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
       return;
     } else if (value == "←") {
       if (start > 0) {
-        int step = (start >= 2 && text.substring(start - 2, start) == "⁻¹")
-            ? 2
-            : 1;
-        newOffset = start - step;
+        newOffset = start - 1;
       }
     } else if (value == "→") {
       if (start < text.length) {
-        int step =
-            (start + 2 <= text.length &&
-                text.substring(start, start + 2) == "⁻¹")
-            ? 2
-            : 1;
-        newOffset = start + step;
+        newOffset = start + 1;
       }
     } else {
-      bool isBinaryOp(String s) => ["+", "-", "×", "^"].contains(s);
-
-      // Check if we are starting a negative exponent
-      bool isNegativeExponentTrigger =
-          (start > 0 && text[start - 1] == "^" && value == "-") ||
-          (start > 1 &&
-              text.substring(start - 2, start) == "^(" &&
-              value == "-");
-
-      // Only swap operators if we aren't currently trying to type a negative power
-      if (start == end &&
-          !isNegativeExponentTrigger &&
-          isBinaryOp(value) &&
-          start > 0 &&
-          isBinaryOp(text[start - 1])) {
-        newText = text.replaceRange(start - 1, start, value);
-        newOffset = start;
-      } else {
-        newText = text.replaceRange(start, end, value);
-        newOffset = start + value.length;
-
-        if (newOffset >= 2 &&
-            newText.substring(newOffset - 2, newOffset) == "^-") {
-          newText = newText.replaceRange(newOffset - 2, newOffset, "⁻¹^");
-          newOffset = newText.indexOf("^", start) + 1;
-        } else if (newOffset >= 3 &&
-            newText.substring(newOffset - 3, newOffset) == "^(-") {
-          newText = newText.replaceRange(newOffset - 3, newOffset, "⁻¹^(");
-          newOffset = newText.indexOf("(", start) + 1;
-        }
-      }
+      newText = text.replaceRange(start, end, value);
+      newOffset = start + value.length;
     }
 
     _textController.value = TextEditingValue(
@@ -400,8 +357,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
           buildRow([
             _buildButton('←'),
             _buildButton('→'),
-            _buildButton('='),
-            _buildButton('⌫', secondary: 'C'),
+            _buildButton('C'),
+            _buildButton('⌫'),
           ]),
           buildRow([
             _buildButton('7'),
@@ -419,7 +376,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
             _buildButton('1'),
             _buildButton('2'),
             _buildButton('3'),
-            _buildButton('×', secondary: '⁻¹'),
+            _buildButton('×'),
           ]),
           buildRow([
             _buildButton('('),
