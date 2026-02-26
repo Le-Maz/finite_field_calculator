@@ -68,8 +68,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
             if ("0123456789+-^()".contains(char)) {
               _onPressed(char);
               return KeyEventResult.handled;
-            } else if (char == '*' || char.toLowerCase() == 'x') {
-              _onPressed(char == '*' ? '×' : 'x');
+            } else if (char == '*') {
+              _onPressed('×');
+              return KeyEventResult.handled;
+            } else if (char.toLowerCase() == 'x') {
+              // Only accept 'x' from physical keyboard if in polynomial mode
+              if (isPolynomialMode.value) {
+                _onPressed('x');
+              }
               return KeyEventResult.handled;
             } else if (char.toLowerCase() == 'i') {
               _onPressed('⁻¹');
@@ -112,6 +118,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
   }
 
   void _onPressed(String value) {
+    // Failsafe: Reject 'x' if polynomial mode is off
+    if (value == 'x' && !isPolynomialMode.value) return;
+
     final text = _textController.text;
     final selection = _textController.selection;
 
@@ -414,7 +423,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
           ]),
           buildRow([
             _buildButton('('),
-            _buildButton('0', secondary: 'x'),
+            _buildButton('0', secondary: isPolynomialMode.value ? 'x' : null),
             _buildButton(')'),
             _buildButton('^'),
           ]),
